@@ -3,12 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
-use App\Http\Requests\StorePostRequest;
-use App\Http\Requests\UpdatePostRequest;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Gate;
 
 class PostController extends Controller
 {
+    /**
+     * Constructor untuk apply middleware ke controller
+     */
+    public function __construct()
+    {
+        // Apply middleware 'auth:sanctum' ke semua method kecuali index dan show
+        $this->middleware('auth:sanctum')->except(['index', 'show']);
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -27,7 +36,8 @@ class PostController extends Controller
             'body' => 'required'
         ]);
 
-        $post = Post::create($validate);
+        // Menggunakan user yang terautentikasi untuk membuat post
+        $post = $request->user()->posts()->create($validate);
 
         return $post;
     }
@@ -45,12 +55,15 @@ class PostController extends Controller
      */
     public function update(Request $request, Post $post)
     {
-        $validate = $request->validate([
+
+        Gate::authorize('modify', $post);    
+
+        $fields = $request->validate([  /////////////////////
             'title' => 'required|max:255',
             'body' => 'required'
         ]);
 
-        $post->update($validate);
+        $post->update($fields);          //////////////////
 
         return $post;
     }
@@ -60,8 +73,10 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
+        Gate::authorize('modify', $post);    
+        
         $post->delete();
 
-        return ['message' => 'Post was Deleted!'];
+        return ['message' => 'Post was deleted!'];
     }
 }
